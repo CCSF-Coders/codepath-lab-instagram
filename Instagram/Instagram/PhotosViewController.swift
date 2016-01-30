@@ -11,13 +11,10 @@ import UIKit
 import AFNetworking
 
 class PhotosViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
-
-    var photos: [NSDictionary]?;
-    @IBOutlet weak var tableView: UITableView!
-    
     
     @IBOutlet weak var photoTableView: UITableView!
     
+    var photos: [NSDictionary]?;
     let CellIdentifier = "TableViewCell", HeaderViewIdentifier = "TableViewHeaderView";
     
     override func viewDidLoad() {
@@ -29,29 +26,13 @@ class PhotosViewController: UIViewController, UITableViewDataSource, UITableView
         photoTableView.rowHeight = 320;
         photoTableView.registerClass(UITableViewCell.self, forCellReuseIdentifier: CellIdentifier)
         photoTableView.registerClass(UITableViewHeaderFooterView.self, forHeaderFooterViewReuseIdentifier: HeaderViewIdentifier)
+        
+        loadData();
 
-        
-        let clientId = "e05c462ebd86446ea48a5af73769b602"
-        let url = NSURL(string:"https://api.instagram.com/v1/media/popular?client_id=\(clientId)")
-        let request = NSURLRequest(URL: url!)
-        let session = NSURLSession(
-            configuration: NSURLSessionConfiguration.defaultSessionConfiguration(),
-            delegate:nil,
-            delegateQueue:NSOperationQueue.mainQueue()
-        )
-        
-        let task : NSURLSessionDataTask = session.dataTaskWithRequest(request,
-            completionHandler: { (dataOrNil, response, error) in
-                if let data = dataOrNil {
-                    if let responseDictionary = try! NSJSONSerialization.JSONObjectWithData(
-                        data, options:[]) as? NSDictionary {
-//                          NSLog("response: \(responseDictionary)")
-                            self.photos = responseDictionary["data"] as? [NSDictionary];
-                            self.photoTableView.reloadData();
-                    }
-                }
-        });
-        task.resume()
+        navigationController!.navigationBar.barStyle = UIBarStyle.Black;
+        navigationController!.navigationBar.barTintColor = UIColor(red: 0.247, green: 0.447, blue: 0.61, alpha: 1);
+        navigationController?.navigationBar.tintColor = UIColor(white: 0.9, alpha: 1.0);
+        self.navigationItem.backBarButtonItem = UIBarButtonItem(title: "", style: UIBarButtonItemStyle.Plain, target: nil, action: nil);
     }
 
     override func didReceiveMemoryWarning() {
@@ -85,15 +66,15 @@ class PhotosViewController: UIViewController, UITableViewDataSource, UITableView
     
     func tableView(tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let headerView = UIView(frame: CGRect(x: 0, y: 0, width: 320, height: 50));
-        headerView.backgroundColor = UIColor(white: 1, alpha: 0.9);
+        headerView.backgroundColor = UIColor(white: 1, alpha: 0.8);
         
-        let profileView = UIImageView(frame: CGRect(x: 10, y: 13, width: 30, height: 30));
+        let profileView = UIImageView(frame: CGRect(x: 10, y: 10, width: 30, height: 30));
         profileView.clipsToBounds = true;
         profileView.layer.cornerRadius = 15;
         profileView.layer.borderColor = UIColor(white: 0.7, alpha: 0.8).CGColor
         profileView.layer.borderWidth = 1;
         
-        let usernameView = UILabel(frame: CGRect(x: 50, y: 13, width: 150, height: 30));
+        let usernameView = UILabel(frame: CGRect(x: 50, y: 10, width: 150, height: 30));
 //        usernameView.center = CGPointMake(100, 25);
         usernameView.textAlignment = NSTextAlignment.Left;
         usernameView.font = UIFont(name: "Helvetica-Bold", size: 14);
@@ -116,14 +97,45 @@ class PhotosViewController: UIViewController, UITableViewDataSource, UITableView
         return 50;
     }
     
+    func loadData() {
+        let clientId = "e05c462ebd86446ea48a5af73769b602"
+        let url = NSURL(string:"https://api.instagram.com/v1/media/popular?client_id=\(clientId)")
+        let request = NSURLRequest(URL: url!)
+        let session = NSURLSession(
+            configuration: NSURLSessionConfiguration.defaultSessionConfiguration(),
+            delegate:nil,
+            delegateQueue:NSOperationQueue.mainQueue()
+        )
+        
+        let task : NSURLSessionDataTask = session.dataTaskWithRequest(request,
+            completionHandler: { (dataOrNil, response, error) in
+                if let data = dataOrNil {
+                    if let responseDictionary = try! NSJSONSerialization.JSONObjectWithData(
+                        data, options:[]) as? NSDictionary {
+                            if(self.photos != nil) {
+                                self.photos = self.photos! + (responseDictionary["data"] as! [NSDictionary]);
+                            } else {
+                                self.photos = responseDictionary["data"] as? [NSDictionary];
+                            }
+                            self.photoTableView.reloadData();
+                    }
+                }
+        });
+        task.resume()
+    }
+    
     override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
         if(segue.identifier == "toDetails") {
             let cell = sender as! UITableViewCell;
-            let indexPath = tableView.indexPathForCell(cell);
+            let indexPath = photoTableView.indexPathForCell(cell);
             let photo = photos![indexPath!.section];
             let detailsViewController = segue.destinationViewController as! DetailsViewController;
             detailsViewController.photoURL = photo["link"]! as! String;
         }
+    }
+    
+    override func viewWillAppear(animated: Bool) {
+        self.navigationController?.setNavigationBarHidden(true, animated:  false);
     }
     
 
