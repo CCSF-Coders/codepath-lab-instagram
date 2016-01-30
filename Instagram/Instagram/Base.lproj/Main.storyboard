@@ -56,7 +56,7 @@
                     </view>
                     <navigationItem key="navigationItem" title="Instagram" id="hwg-5Z-XJh"/>
                     <connections>
-                        <outlet property="photoTableView" destination="rF7-LH-9ey" id="yvi-sp-j8N"/>
+                        <outlet property="photoTableView" destination="rF7-LH-9ey" id="4hp-RE-xhk"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>

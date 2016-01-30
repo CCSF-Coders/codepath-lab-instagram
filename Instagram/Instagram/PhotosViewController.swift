@@ -2,7 +2,7 @@
 //  PhotosViewController.swift
 //  Flicks
 //
-//  CodePath University 2016 - Week 1 Assignment: "Flicks"
+//  CodePath University 2016 - Week 1/2 Lab: "Instagram"
 //
 //  Created by Tejen Patel on 1/23/16.
 //
@@ -10,12 +10,13 @@
 import UIKit
 import AFNetworking
 
-class PhotosViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
-    
-    @IBOutlet weak var photoTableView: UITableView!
+class PhotosViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, UIScrollViewDelegate {
     
     var photos: [NSDictionary]?;
+    var isMoreDataLoading = false
     let CellIdentifier = "TableViewCell", HeaderViewIdentifier = "TableViewHeaderView";
+    var loadingMoreView: InfiniteScrollActivityView?;
+    @IBOutlet weak var photoTableView: UITableView!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -27,12 +28,22 @@ class PhotosViewController: UIViewController, UITableViewDataSource, UITableView
         photoTableView.registerClass(UITableViewCell.self, forCellReuseIdentifier: CellIdentifier)
         photoTableView.registerClass(UITableViewHeaderFooterView.self, forHeaderFooterViewReuseIdentifier: HeaderViewIdentifier)
         
-        loadData();
+        loadMoreData();
 
         navigationController!.navigationBar.barStyle = UIBarStyle.Black;
         navigationController!.navigationBar.barTintColor = UIColor(red: 0.247, green: 0.447, blue: 0.61, alpha: 1);
         navigationController?.navigationBar.tintColor = UIColor(white: 0.9, alpha: 1.0);
         self.navigationItem.backBarButtonItem = UIBarButtonItem(title: "", style: UIBarButtonItemStyle.Plain, target: nil, action: nil);
+        
+        // Set up Infinite Scroll loading indicator
+        let frame = CGRectMake(0, photoTableView.contentSize.height, photoTableView.bounds.size.width, InfiniteScrollActivityView.defaultHeight)
+        loadingMoreView = InfiniteScrollActivityView(frame: frame)
+        loadingMoreView!.hidden = true
+        photoTableView.addSubview(loadingMoreView!)
+        
+        var insets = photoTableView.contentInset;
+        insets.bottom += InfiniteScrollActivityView.defaultHeight;
+        photoTableView.contentInset = insets
     }
 
     override func didReceiveMemoryWarning() {
@@ -97,7 +108,27 @@ class PhotosViewController: UIViewController, UITableViewDataSource, UITableView
         return 50;
     }
     
-    func loadData() {
+    func scrollViewDidScroll(scrollView: UIScrollView) {
+        if (!isMoreDataLoading) {
+            // Calculate the position of one screen length before the bottom of the results
+            let scrollViewContentHeight = photoTableView.contentSize.height
+            let scrollOffsetThreshold = scrollViewContentHeight - (photoTableView.bounds.size.height * 2);
+            
+            // When the user has scrolled past the threshold, start requesting
+            if(scrollView.contentOffset.y > scrollOffsetThreshold && photoTableView.dragging) {
+                isMoreDataLoading = true
+                
+                // Update position of loadingMoreView, and start loading indicator
+                let frame = CGRectMake(0, photoTableView.contentSize.height, photoTableView.bounds.size.width, InfiniteScrollActivityView.defaultHeight)
+                loadingMoreView?.frame = frame
+                loadingMoreView!.startAnimating()
+                
+                loadMoreData();
+            }
+        }
+    }
+    
+    func loadMoreData() {
         let clientId = "e05c462ebd86446ea48a5af73769b602"
         let url = NSURL(string:"https://api.instagram.com/v1/media/popular?client_id=\(clientId)")
         let request = NSURLRequest(URL: url!)
@@ -109,6 +140,7 @@ class PhotosViewController: UIViewController, UITableViewDataSource, UITableView
         
         let task : NSURLSessionDataTask = session.dataTaskWithRequest(request,
             completionHandler: { (dataOrNil, response, error) in
+                self.isMoreDataLoading = false;
                 if let data = dataOrNil {
                     if let responseDictionary = try! NSJSONSerialization.JSONObjectWithData(
                         data, options:[]) as? NSDictionary {
@@ -120,6 +152,7 @@ class PhotosViewController: UIViewController, UITableViewDataSource, UITableView
                             self.photoTableView.reloadData();
                     }
                 }
+                self.loadingMoreView!.stopAnimating()
         });
         task.resume()
     }
